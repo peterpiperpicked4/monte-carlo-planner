@@ -69,3 +69,66 @@ Started: 2026-01-21 21:40 PST
 - Investment types: real_estate, private_equity, hedge_fund, crypto, annuity, other
 
 ---
+
+## Iteration - 2026-01-21 21:36 PST
+**Story:** US-003 - Create AI Discovery Component Shell
+**Status:** Completed
+
+**What was implemented:**
+- Created AIDiscovery.jsx component with chat-like interface
+- Component renders message bubbles (user messages on right, AI on left with avatars)
+- Component accepts onUpdateProfile callback prop for form data updates
+- Added typing indicator animation when AI is "thinking"
+- Added quick answer suggestion buttons below AI messages
+- Toggle button added to App.jsx header to show/hide AI Discovery panel
+- Dark mode styling with emerald accents matching app theme
+- Build passes with no errors
+
+**Files changed:**
+- web/frontend/src/components/AIDiscovery.jsx (new file - 256 lines)
+- web/frontend/src/App.jsx (added imports, state, toggle button, and AIDiscovery render)
+- web/frontend/prd.json (marked US-003 as passes: true)
+
+**Learnings for future iterations:**
+- Use memo() for sub-components like MessageBubble for performance
+- CSS_COLORS from utils/colors.js for consistent theming
+- var(--gradient-emerald) for emerald gradient backgrounds
+- Scroll to bottom on new messages using useRef and scrollIntoView
+- Message suggestions use a callback pattern passed through message objects
+
+---
+
+## Iteration - 2026-01-21 21:39 PST
+**Story:** US-004 - Implement AI Discovery Questions Logic
+**Status:** Completed
+
+**What was implemented:**
+- Added `QUESTION_DEFINITIONS` array with 10 question definitions covering:
+  - Social Security (2 questions: benefit amount, claiming age)
+  - Pension (1 question)
+  - Healthcare (1 question about pre-Medicare costs)
+  - Risk Tolerance (1 question)
+  - Goals (3 questions: retirement income, legacy, retirement age)
+  - Savings (2 questions: employer match, monthly contribution)
+- Each question has a `check` function to analyze profile gaps
+- Added `analyzeProfileGaps()` function to identify missing/default profile data
+- Questions shown one at a time with quick answer buttons
+- Added skip functionality with SkipForward icon
+- Answers update form state via `onUpdateProfile` callback
+- Added progress indicator (CompletionBadge) showing X/Y questions answered
+- Added contextual intro message based on profile completeness
+- Added follow-up messages after answers to confirm updates
+- Build passes with no errors
+
+**Files changed:**
+- web/frontend/src/components/AIDiscovery.jsx (complete rewrite - 621 lines)
+- web/frontend/prd.json (marked US-004 as passes: true)
+
+**Learnings for future iterations:**
+- Use `useMemo` for profile analysis to avoid recalculating on every render
+- Question `check` functions can reference multiple profile fields for conditional logic
+- Track answered questions with a Set for O(1) lookup
+- Merge formData prop with defaults to handle empty initial state
+- Use `setTimeout` for simulated AI typing delays (will be replaced with real API in US-005)
+
+---

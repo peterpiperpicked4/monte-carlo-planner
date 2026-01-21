@@ -65,7 +65,7 @@
         "Answers update the form state via onUpdateProfile callback"
       ],
       "priority": 4,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {

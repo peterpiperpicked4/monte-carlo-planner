@@ -1,8 +1,159 @@
-import React, { memo, useState, useCallback, useRef, useEffect } from 'react';
-import { Sparkles, Send, User, Bot, ChevronRight } from 'lucide-react';
+import React, { memo, useState, useCallback, useRef, useEffect, useMemo } from 'react';
+import { Sparkles, Send, User, Bot, ChevronRight, SkipForward, Check } from 'lucide-react';
 import { CSS_COLORS } from '../utils/colors';
 
-const MessageBubble = memo(function MessageBubble({ message, isUser }) {
+// Question definitions with analysis logic
+const QUESTION_DEFINITIONS = [
+  {
+    id: 'social_security',
+    type: 'Social Security',
+    check: (profile) => !profile.ss_benefit_at_fra || profile.ss_benefit_at_fra === 0,
+    question: "Have you checked your estimated Social Security benefit? This can significantly impact your retirement income.",
+    suggestions: [
+      { label: "Yes, about $2,000/month", value: { ss_benefit_at_fra: 2000 } },
+      { label: "Yes, about $3,000/month", value: { ss_benefit_at_fra: 3000 } },
+      { label: "I haven't checked yet", value: null },
+      { label: "I don't expect SS benefits", value: { ss_benefit_at_fra: 0 } }
+    ],
+    followUp: "Great! I've updated your Social Security estimate. This will help provide a more accurate projection of your retirement income."
+  },
+  {
+    id: 'ss_claiming_age',
+    type: 'Social Security',
+    check: (profile) => profile.ss_benefit_at_fra > 0 && (!profile.ss_claiming_age || profile.ss_claiming_age === 67),
+    question: "When are you planning to start claiming Social Security? Claiming early reduces benefits, while delaying increases them.",
+    suggestions: [
+      { label: "Age 62 (early, reduced)", value: { ss_claiming_age: 62 } },
+      { label: "Age 67 (full retirement)", value: { ss_claiming_age: 67 } },
+      { label: "Age 70 (maximum benefit)", value: { ss_claiming_age: 70 } }
+    ],
+    followUp: "I've noted your planned claiming age. This affects your monthly benefit amount in our projections."
+  },
+  {
+    id: 'pension',
+    type: 'Pension',
+    check: (profile) => !profile.pension_annual_benefit || profile.pension_annual_benefit === 0,
+    question: "Do you have a pension or defined benefit plan from an employer? Many people forget to include this guaranteed income source.",
+    suggestions: [
+      { label: "Yes, about $20,000/year", value: { pension_annual_benefit: 20000, pension_start_age: 65 } },
+      { label: "Yes, about $40,000/year", value: { pension_annual_benefit: 40000, pension_start_age: 65 } },
+      { label: "No pension", value: { pension_annual_benefit: 0 } }
+    ],
+    followUp: "I've added your pension to the projections. Pensions provide valuable guaranteed income in retirement."
+  },
+  {
+    id: 'healthcare_awareness',
+    type: 'Healthcare',
+    check: (profile) => !profile.hc_pre_medicare_premium || profile.hc_pre_medicare_premium < 6000,
+    question: "Healthcare costs before Medicare (age 65) can be substantial. Have you budgeted for health insurance if you retire early?",
+    suggestions: [
+      { label: "ACA marketplace plan (~$12k/yr)", value: { hc_pre_medicare_premium: 12000, hc_pre_medicare_oop: 4000 } },
+      { label: "COBRA coverage (~$18k/yr)", value: { hc_pre_medicare_premium: 18000, hc_pre_medicare_oop: 3000 } },
+      { label: "Spouse's employer plan", value: { hc_pre_medicare_premium: 6000, hc_pre_medicare_oop: 2000 } },
+      { label: "I'll work until 65 for insurance", value: null }
+    ],
+    followUp: "Healthcare costs are a crucial factor in retirement planning. I've updated your estimates."
+  },
+  {
+    id: 'risk_tolerance',
+    type: 'Risk Tolerance',
+    check: (profile) => !profile.risk_tolerance || profile.risk_tolerance === 5,
+    question: "How would you describe your investment risk tolerance? This affects your portfolio allocation.",
+    suggestions: [
+      { label: "Conservative (preserve capital)", value: { risk_tolerance: 3 } },
+      { label: "Moderate (balanced growth)", value: { risk_tolerance: 5 } },
+      { label: "Aggressive (maximum growth)", value: { risk_tolerance: 8 } }
+    ],
+    followUp: "I've adjusted your risk tolerance. This will influence the recommended asset allocation in your portfolio."
+  },
+  {
+    id: 'retirement_income_goal',
+    type: 'Goals',
+    check: (profile) => !profile.retirement_income_goal || profile.retirement_income_goal === 80000,
+    question: "What annual income do you want in retirement? A common rule is 70-80% of your pre-retirement income.",
+    suggestions: [
+      { label: "$60,000/year (modest)", value: { retirement_income_goal: 60000 } },
+      { label: "$80,000/year (comfortable)", value: { retirement_income_goal: 80000 } },
+      { label: "$100,000/year (affluent)", value: { retirement_income_goal: 100000 } },
+      { label: "$120,000/year (wealthy)", value: { retirement_income_goal: 120000 } }
+    ],
+    followUp: "I've updated your retirement income goal. This is the target we'll use to measure your plan's success."
+  },
+  {
+    id: 'legacy_goal',
+    type: 'Goals',
+    check: (profile) => !profile.legacy_goal || profile.legacy_goal === 100000,
+    question: "Do you want to leave an inheritance or estate for heirs? This affects how we model your spending.",
+    suggestions: [
+      { label: "No specific legacy goal", value: { legacy_goal: 0 } },
+      { label: "$100,000 minimum", value: { legacy_goal: 100000 } },
+      { label: "$500,000 target", value: { legacy_goal: 500000 } },
+      { label: "Maximize legacy", value: { legacy_goal: 1000000 } }
+    ],
+    followUp: "I've set your legacy goal. We'll factor this into your withdrawal strategy projections."
+  },
+  {
+    id: 'employer_match',
+    type: 'Savings',
+    check: (profile) => (!profile.employer_match_percent || profile.employer_match_percent === 0) && profile.annual_income > 50000,
+    question: "Does your employer offer a 401(k) match? This is free money you don't want to leave on the table!",
+    suggestions: [
+      { label: "Yes, 3% match", value: { employer_match_percent: 3, employer_match_limit: 6000 } },
+      { label: "Yes, 6% match", value: { employer_match_percent: 6, employer_match_limit: 12000 } },
+      { label: "No employer match", value: { employer_match_percent: 0 } },
+      { label: "Self-employed / no 401k", value: null }
+    ],
+    followUp: "Employer matching is one of the best returns on your money. I've updated your savings projections."
+  },
+  {
+    id: 'monthly_contribution',
+    type: 'Savings',
+    check: (profile) => !profile.monthly_contribution || profile.monthly_contribution < 500,
+    question: "How much are you currently saving each month for retirement? Consistent contributions are key to building wealth.",
+    suggestions: [
+      { label: "$500/month", value: { monthly_contribution: 500 } },
+      { label: "$1,000/month", value: { monthly_contribution: 1000 } },
+      { label: "$1,500/month", value: { monthly_contribution: 1500 } },
+      { label: "$2,000+/month", value: { monthly_contribution: 2000 } }
+    ],
+    followUp: "I've updated your monthly contribution. Remember, even small increases can make a big difference over time."
+  },
+  {
+    id: 'retirement_age',
+    type: 'Goals',
+    check: (profile) => !profile.retirement_age || profile.retirement_age === 65,
+    question: "When do you want to retire? Earlier retirement requires more savings; later retirement allows more accumulation.",
+    suggestions: [
+      { label: "Age 55 (early)", value: { retirement_age: 55 } },
+      { label: "Age 60", value: { retirement_age: 60 } },
+      { label: "Age 65 (traditional)", value: { retirement_age: 65 } },
+      { label: "Age 67 or later", value: { retirement_age: 67 } }
+    ],
+    followUp: "I've set your target retirement age. This determines how long you have to save and how long your money needs to last."
+  }
+];
+
+// Analyze profile and find gaps
+function analyzeProfileGaps(profile) {
+  return QUESTION_DEFINITIONS.filter(q => q.check(profile));
+}
+
+// Generate contextual intro based on profile
+function generateIntro(profile, gaps) {
+  const gapCount = gaps.length;
+  if (gapCount === 0) {
+    return "Your profile looks comprehensive! I don't have any additional questions at this time. Run a simulation to see your projections.";
+  }
+  if (gapCount <= 2) {
+    return `Your profile is mostly complete! I have ${gapCount === 1 ? 'one question' : 'a couple of questions'} that could help refine your projections.`;
+  }
+  if (gapCount <= 5) {
+    return "I've reviewed your profile and have a few questions that could help create more accurate projections. Let's go through them one at a time.";
+  }
+  return "Let's walk through some important questions to build out your retirement profile. This will help me give you more accurate projections.";
+}
+
+const MessageBubble = memo(function MessageBubble({ message, isUser, onSelectSuggestion }) {
   return (
     <div
       className={`flex gap-3 ${isUser ? 'flex-row-reverse' : ''}`}
@@ -40,6 +191,21 @@ const MessageBubble = memo(function MessageBubble({ message, isUser }) {
           {message.text}
         </p>
 
+        {/* Question Type Badge */}
+        {message.questionType && (
+          <div className="mt-2">
+            <span
+              className="inline-block px-2 py-0.5 text-xs rounded-full"
+              style={{
+                background: 'rgba(16, 185, 129, 0.15)',
+                color: CSS_COLORS.emerald
+              }}
+            >
+              {message.questionType}
+            </span>
+          </div>
+        )}
+
         {/* Suggested Answers */}
         {message.suggestions && message.suggestions.length > 0 && (
           <div className="mt-3 pt-3 border-t" style={{ borderColor: CSS_COLORS.border }}>
@@ -53,7 +219,7 @@ const MessageBubble = memo(function MessageBubble({ message, isUser }) {
               {message.suggestions.map((suggestion, idx) => (
                 <button
                   key={idx}
-                  onClick={() => message.onSelectSuggestion?.(suggestion)}
+                  onClick={() => onSelectSuggestion?.(suggestion, message.questionId)}
                   className="px-3 py-1.5 text-xs rounded-full border transition-all hover:border-[var(--emerald)] hover:text-[var(--emerald)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--emerald)]"
                   style={{
                     background: CSS_COLORS.bgElevated,
@@ -65,6 +231,20 @@ const MessageBubble = memo(function MessageBubble({ message, isUser }) {
                 </button>
               ))}
             </div>
+          </div>
+        )}
+
+        {/* Skip Option */}
+        {message.canSkip && (
+          <div className="mt-3 pt-3 border-t" style={{ borderColor: CSS_COLORS.border }}>
+            <button
+              onClick={() => onSelectSuggestion?.({ label: 'Skip', value: null, isSkip: true }, message.questionId)}
+              className="flex items-center gap-1 text-xs transition-colors hover:text-[var(--emerald)]"
+              style={{ color: CSS_COLORS.textMuted }}
+            >
+              <SkipForward className="w-3 h-3" />
+              Skip this question
+            </button>
           </div>
         )}
       </div>
@@ -109,33 +289,198 @@ const TypingIndicator = memo(function TypingIndicator() {
   );
 });
 
+const CompletionBadge = memo(function CompletionBadge({ answered, total }) {
+  const percentage = total > 0 ? Math.round((answered / total) * 100) : 100;
+  return (
+    <div className="flex items-center gap-2">
+      <div
+        className="w-20 h-1.5 rounded-full overflow-hidden"
+        style={{ background: CSS_COLORS.bgHover }}
+      >
+        <div
+          className="h-full rounded-full transition-all duration-500"
+          style={{
+            width: `${percentage}%`,
+            background: 'var(--gradient-emerald)'
+          }}
+        />
+      </div>
+      <span className="text-xs font-mono" style={{ color: CSS_COLORS.textMuted }}>
+        {answered}/{total}
+      </span>
+    </div>
+  );
+});
+
 const AIDiscovery = memo(function AIDiscovery({ onUpdateProfile, formData }) {
-  const [messages, setMessages] = useState([
-    {
-      id: 1,
-      text: "Hi! I'm your AI financial assistant. I can help you complete your retirement profile by asking a few questions. Let's make sure we haven't missed anything important.",
-      isUser: false,
-      suggestions: [
-        { label: "Let's get started", value: 'start' },
-        { label: "Review my profile", value: 'review' }
-      ]
-    }
-  ]);
+  // Merge formData prop with default profile for analysis
+  const currentProfile = useMemo(() => ({
+    // Default values that match InputForm defaults
+    current_age: 35,
+    retirement_age: 65,
+    life_expectancy: 90,
+    risk_tolerance: 5,
+    annual_income: 100000,
+    current_savings: 150000,
+    monthly_contribution: 1500,
+    employer_match_percent: 3,
+    retirement_income_goal: 80000,
+    legacy_goal: 100000,
+    ss_benefit_at_fra: 2500,
+    ss_claiming_age: 67,
+    pension_annual_benefit: 0,
+    hc_pre_medicare_premium: 12000,
+    ...formData
+  }), [formData]);
+
+  // Analyze gaps
+  const profileGaps = useMemo(() => analyzeProfileGaps(currentProfile), [currentProfile]);
+
+  // Track which questions have been answered
+  const [answeredQuestions, setAnsweredQuestions] = useState(new Set());
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+
+  // Get unanswered questions
+  const unansweredQuestions = useMemo(() =>
+    profileGaps.filter(q => !answeredQuestions.has(q.id)),
+    [profileGaps, answeredQuestions]
+  );
+
+  const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [isStarted, setIsStarted] = useState(false);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
+
+  // Initialize with welcome message
+  useEffect(() => {
+    if (messages.length === 0) {
+      const intro = generateIntro(currentProfile, profileGaps);
+      setMessages([{
+        id: 1,
+        text: intro,
+        isUser: false,
+        suggestions: profileGaps.length > 0 ? [
+          { label: "Let's get started", value: 'start' },
+          { label: "Review my profile first", value: 'review' }
+        ] : [],
+        questionId: 'intro'
+      }]);
+    }
+  }, []);
 
   // Scroll to bottom when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Handle sending a message
+  // Ask the next question
+  const askNextQuestion = useCallback(() => {
+    if (unansweredQuestions.length === 0) {
+      // All questions answered
+      setTimeout(() => {
+        setMessages(prev => [...prev, {
+          id: Date.now(),
+          text: "Excellent! I've gathered all the information I need. Your profile is now more complete, which will help create more accurate retirement projections. Go ahead and run a simulation to see your results!",
+          isUser: false,
+          suggestions: []
+        }]);
+        setIsTyping(false);
+      }, 800);
+      return;
+    }
+
+    const nextQuestion = unansweredQuestions[0];
+
+    setTimeout(() => {
+      setMessages(prev => [...prev, {
+        id: Date.now(),
+        text: nextQuestion.question,
+        isUser: false,
+        suggestions: nextQuestion.suggestions,
+        questionType: nextQuestion.type,
+        questionId: nextQuestion.id,
+        canSkip: true
+      }]);
+      setIsTyping(false);
+    }, 800);
+  }, [unansweredQuestions]);
+
+  // Handle suggestion selection
+  const handleSelectSuggestion = useCallback((suggestion, questionId) => {
+    // Add user's response as a message
+    const userMessage = {
+      id: Date.now(),
+      text: suggestion.label,
+      isUser: true
+    };
+    setMessages(prev => [...prev, userMessage]);
+
+    // Handle intro options
+    if (questionId === 'intro') {
+      setIsTyping(true);
+      setIsStarted(true);
+
+      if (suggestion.value === 'review') {
+        setTimeout(() => {
+          setMessages(prev => [...prev, {
+            id: Date.now() + 1,
+            text: `Based on your current profile, I see you're ${currentProfile.current_age} years old, planning to retire at ${currentProfile.retirement_age}, with $${currentProfile.current_savings.toLocaleString()} in savings. Now let me ask a few questions to fill in some gaps.`,
+            isUser: false
+          }]);
+          setIsTyping(false);
+          // Then ask first question
+          setTimeout(() => {
+            setIsTyping(true);
+            askNextQuestion();
+          }, 1500);
+        }, 800);
+      } else {
+        askNextQuestion();
+      }
+      return;
+    }
+
+    // Mark question as answered
+    setAnsweredQuestions(prev => new Set([...prev, questionId]));
+
+    // Update profile if suggestion has a value (and isn't a skip)
+    if (suggestion.value && !suggestion.isSkip && typeof suggestion.value === 'object') {
+      onUpdateProfile?.(suggestion.value);
+    }
+
+    // Find the question definition for follow-up
+    const questionDef = QUESTION_DEFINITIONS.find(q => q.id === questionId);
+
+    setIsTyping(true);
+
+    // Show follow-up and then next question
+    if (questionDef && suggestion.value && !suggestion.isSkip) {
+      setTimeout(() => {
+        setMessages(prev => [...prev, {
+          id: Date.now() + 1,
+          text: questionDef.followUp,
+          isUser: false
+        }]);
+        setIsTyping(false);
+
+        // Ask next question after a brief pause
+        setTimeout(() => {
+          setIsTyping(true);
+          askNextQuestion();
+        }, 1000);
+      }, 800);
+    } else {
+      // Skipped or no value - just move to next question
+      askNextQuestion();
+    }
+  }, [currentProfile, onUpdateProfile, askNextQuestion]);
+
+  // Handle free-form input
   const handleSendMessage = useCallback((text) => {
     if (!text.trim()) return;
 
-    // Add user message
     const userMessage = {
       id: Date.now(),
       text: text.trim(),
@@ -146,39 +491,30 @@ const AIDiscovery = memo(function AIDiscovery({ onUpdateProfile, formData }) {
     setInputValue('');
     setIsTyping(true);
 
-    // Simulate AI response (this will be replaced with actual API call in US-005)
+    // Simple response for free-form input
     setTimeout(() => {
-      const aiResponse = {
+      setMessages(prev => [...prev, {
         id: Date.now() + 1,
-        text: "Thanks for sharing! I'll use this information to help refine your retirement projections. Is there anything else you'd like to tell me about your financial situation?",
-        isUser: false,
-        suggestions: [
-          { label: "I have more details", value: 'more' },
-          { label: "That's all for now", value: 'done' }
-        ]
-      };
-
-      setMessages(prev => [...prev, aiResponse]);
+        text: "Thanks for that information! Let me continue with some specific questions to help complete your profile.",
+        isUser: false
+      }]);
       setIsTyping(false);
-    }, 1000);
-  }, []);
 
-  // Handle suggestion selection
-  const handleSelectSuggestion = useCallback((suggestion) => {
-    handleSendMessage(suggestion.label);
-  }, [handleSendMessage]);
+      if (!isStarted) {
+        setIsStarted(true);
+        setTimeout(() => {
+          setIsTyping(true);
+          askNextQuestion();
+        }, 1000);
+      }
+    }, 800);
+  }, [isStarted, askNextQuestion]);
 
   // Handle form submit
   const handleSubmit = useCallback((e) => {
     e.preventDefault();
     handleSendMessage(inputValue);
   }, [inputValue, handleSendMessage]);
-
-  // Add suggestion handler to messages
-  const messagesWithHandlers = messages.map(msg => ({
-    ...msg,
-    onSelectSuggestion: msg.isUser ? undefined : handleSelectSuggestion
-  }));
 
   return (
     <section
@@ -187,28 +523,38 @@ const AIDiscovery = memo(function AIDiscovery({ onUpdateProfile, formData }) {
     >
       {/* Header */}
       <div
-        className="px-6 py-4 border-b flex items-center gap-3"
+        className="px-6 py-4 border-b flex items-center justify-between"
         style={{ borderColor: CSS_COLORS.border }}
       >
-        <div
-          className="w-10 h-10 rounded-lg flex items-center justify-center"
-          style={{ background: 'var(--gradient-emerald)' }}
-          aria-hidden="true"
-        >
-          <Sparkles className="w-5 h-5" style={{ color: CSS_COLORS.bgPrimary }} />
-        </div>
-        <div>
-          <h3
-            id="ai-discovery-title"
-            className="font-medium"
-            style={{ color: CSS_COLORS.textPrimary }}
+        <div className="flex items-center gap-3">
+          <div
+            className="w-10 h-10 rounded-lg flex items-center justify-center"
+            style={{ background: 'var(--gradient-emerald)' }}
+            aria-hidden="true"
           >
-            AI Discovery
-          </h3>
-          <span className="text-xs" style={{ color: CSS_COLORS.textMuted }}>
-            Let's complete your financial profile
-          </span>
+            <Sparkles className="w-5 h-5" style={{ color: CSS_COLORS.bgPrimary }} />
+          </div>
+          <div>
+            <h3
+              id="ai-discovery-title"
+              className="font-medium"
+              style={{ color: CSS_COLORS.textPrimary }}
+            >
+              AI Discovery
+            </h3>
+            <span className="text-xs" style={{ color: CSS_COLORS.textMuted }}>
+              Let's complete your financial profile
+            </span>
+          </div>
         </div>
+
+        {/* Progress indicator */}
+        {isStarted && profileGaps.length > 0 && (
+          <CompletionBadge
+            answered={answeredQuestions.size}
+            total={profileGaps.length}
+          />
+        )}
       </div>
 
       {/* Messages Area */}
@@ -221,8 +567,13 @@ const AIDiscovery = memo(function AIDiscovery({ onUpdateProfile, formData }) {
         role="list"
         aria-label="Conversation messages"
       >
-        {messagesWithHandlers.map((message) => (
-          <MessageBubble key={message.id} message={message} isUser={message.isUser} />
+        {messages.map((message) => (
+          <MessageBubble
+            key={message.id}
+            message={message}
+            isUser={message.isUser}
+            onSelectSuggestion={handleSelectSuggestion}
+          />
         ))}
 
         {isTyping && <TypingIndicator />}
