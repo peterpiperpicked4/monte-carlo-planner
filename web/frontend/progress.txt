@@ -132,3 +132,53 @@ Started: 2026-01-21 21:40 PST
 - Use `setTimeout` for simulated AI typing delays (will be replaced with real API in US-005)
 
 ---
+
+## Iteration - 2026-01-21 21:45 PST
+**Story:** US-005 - Add AI Discovery API Integration
+**Status:** Completed
+
+**What was implemented:**
+- Created new Pydantic models in models.py:
+  - DiscoveryQuestion: question id, text, type, suggestions, priority
+  - DiscoveryRequest: accepts profile dict and answered_questions list
+  - DiscoveryResponse: returns questions, completeness_score, recommendations, insights
+- Added discover_profile function to services/claude.py:
+  - Builds a prompt for Claude to analyze profile gaps
+  - Returns personalized questions, insights, and recommendations
+  - Falls back to empty response on JSON parse errors
+- Created /api/discovery endpoint in routes/ai.py:
+  - POST endpoint that accepts DiscoveryRequest
+  - Mock response generator for when API key not available
+  - Uses Claude API when ANTHROPIC_API_KEY is set
+  - Returns DiscoveryResponse with dynamic questions based on profile gaps
+- Updated AIDiscovery.jsx frontend component:
+  - Added fetchDiscovery() function that calls /api/discovery endpoint
+  - Added isLoading state and LoadingIndicator component ("Analyzing your profile...")
+  - Added apiError and useLocalFallback state for graceful degradation
+  - Added FALLBACK_QUESTIONS array with 10 local question definitions
+  - Added analyzeProfileLocal() and calculateCompleteness() fallback functions
+  - Shows offline mode banner with Retry button when API fails
+  - Response includes insights and recommendations displayed in messages
+  - CompletionBadge now shows percentage from API completeness_score
+- All acceptance criteria verified:
+  - ✅ New /api/discovery endpoint exists in backend
+  - ✅ Endpoint accepts user profile and returns personalized questions/insights (tested with curl)
+  - ✅ AIDiscovery component calls this endpoint
+  - ✅ Response includes: suggested questions, profile completeness score, recommendations
+  - ✅ Loading state shown while waiting for API
+  - ✅ Graceful fallback if API fails (uses local question logic)
+
+**Files changed:**
+- web/backend/models.py (added DiscoveryQuestion, DiscoveryRequest, DiscoveryResponse models)
+- web/backend/services/claude.py (added build_discovery_prompt, discover_profile functions)
+- web/backend/routes/ai.py (added generate_mock_discovery, /api/discovery endpoint)
+- web/frontend/src/components/AIDiscovery.jsx (added API integration, loading state, fallback logic)
+
+**Learnings for future iterations:**
+- The mock discovery generator in routes/ai.py provides meaningful responses even without Claude API
+- Use try/catch around fetch to gracefully fallback to local logic
+- Display insights and recommendations from API response in message bubbles
+- completeness_score is a float 0-1, multiply by 100 for percentage display
+- Keep local fallback questions in sync with backend mock generator questions
+
+---

@@ -81,7 +81,7 @@
         "Graceful fallback if API fails (use local question logic)"
       ],
       "priority": 5,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
