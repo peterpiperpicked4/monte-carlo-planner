@@ -1,11 +1,12 @@
 import React, { useState, useCallback, useMemo } from 'react';
-import { TrendingUp, Loader2 } from 'lucide-react';
+import { TrendingUp, Loader2, Sparkles } from 'lucide-react';
 import InputForm from './components/InputForm';
 import FanChart from './components/FanChart';
 import SuccessGauge from './components/SuccessGauge';
 import PercentileTable from './components/PercentileTable';
 import AssetAllocation from './components/AssetAllocation';
 import AIInsights from './components/AIInsights';
+import AIDiscovery from './components/AIDiscovery';
 import ErrorBoundary from './components/ErrorBoundary';
 import { CSS_COLORS } from './utils/colors';
 import { formatCurrency } from './utils/format';
@@ -16,6 +17,13 @@ function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState(null);
+  const [showAIDiscovery, setShowAIDiscovery] = useState(false);
+  const [formData, setFormData] = useState({});
+
+  // Callback for AI Discovery to update form data
+  const handleUpdateProfile = useCallback((updates) => {
+    setFormData(prev => ({ ...prev, ...updates }));
+  }, []);
 
   const handleSubmit = useCallback(async (payload) => {
     setIsLoading(true);
@@ -125,8 +133,25 @@ function App() {
                 </div>
               </div>
 
-              {results && (
-                <div className="hidden md:flex items-center gap-8">
+              <div className="flex items-center gap-4">
+                {/* AI Discovery Toggle */}
+                <button
+                  onClick={() => setShowAIDiscovery(!showAIDiscovery)}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--emerald)] ${showAIDiscovery ? 'ring-2 ring-[var(--emerald)]' : ''}`}
+                  style={{
+                    background: showAIDiscovery ? 'rgba(16, 185, 129, 0.15)' : CSS_COLORS.bgHover,
+                    color: showAIDiscovery ? CSS_COLORS.emerald : CSS_COLORS.textSecondary,
+                    border: `1px solid ${showAIDiscovery ? 'rgba(16, 185, 129, 0.3)' : CSS_COLORS.border}`
+                  }}
+                  aria-pressed={showAIDiscovery}
+                  aria-label={showAIDiscovery ? 'Hide AI Discovery' : 'Show AI Discovery'}
+                >
+                  <Sparkles className="w-4 h-4" />
+                  <span className="hidden sm:inline">AI Discovery</span>
+                </button>
+
+                {results && (
+                  <div className="hidden md:flex items-center gap-8">
                   <div className="text-right">
                     <div className="text-xs uppercase tracking-wider mb-1" style={{ color: CSS_COLORS.textMuted }}>
                       Success Rate
@@ -148,7 +173,8 @@ function App() {
                     </div>
                   </div>
                 </div>
-              )}
+                )}
+              </div>
             </div>
           </div>
         </header>
@@ -187,7 +213,15 @@ function App() {
                 </div>
               )}
 
-              {!results && !isLoading && (
+              {/* AI Discovery Panel */}
+              {showAIDiscovery && (
+                <AIDiscovery
+                  onUpdateProfile={handleUpdateProfile}
+                  formData={formData}
+                />
+              )}
+
+              {!results && !isLoading && !showAIDiscovery && (
                 <div
                   className="surface-elevated text-center py-24 animate-fade-in"
                 >
