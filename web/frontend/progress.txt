@@ -45,3 +45,27 @@ Started: 2026-01-21 21:40 PST
 - Test with curl to verify API responses
 
 ---
+
+## Iteration - 2026-01-21 22:15 PST
+**Story:** US-002 - Add Alternative Investments Form Section
+**Status:** Completed
+
+**What was implemented:**
+- Added new collapsible "Alternative Investments" section to InputForm.jsx
+- Users can add investments with name, type dropdown, current value, and expected return
+- Users can remove investments with the Trash2 icon button
+- Form state includes alternative_investments array
+- Payload sent to backend includes properly formatted alternative_investments array
+- Build passes with no errors
+
+**Files changed:**
+- web/frontend/src/components/InputForm.jsx (added Plus and Trash2 lucide icons, INVESTMENT_TYPES constant, alternative_investments to form state, add/remove/update handlers, Alternative Investments Section UI, and wired into payload)
+- web/frontend/prd.json (marked US-002 as passes: true)
+
+**Learnings for future iterations:**
+- The Section component is reusable for collapsible forms - just pass title and defaultOpen
+- Use Date.now() for unique IDs when adding items to arrays
+- Backend expects expected_return as decimal (0.07), frontend displays as percentage (7)
+- Investment types: real_estate, private_equity, hedge_fund, crypto, annuity, other
+
+---

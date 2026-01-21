@@ -33,7 +33,7 @@
         "No console errors when adding/removing investments"
       ],
       "priority": 2,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {

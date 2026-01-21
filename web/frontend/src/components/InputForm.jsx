@@ -1,5 +1,5 @@
 import React, { useState, useId } from 'react';
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronDown, ChevronUp, Plus, Trash2 } from 'lucide-react';
 
 const Section = ({ title, children, defaultOpen = true }) => {
   const [isOpen, setIsOpen] = useState(defaultOpen);
@@ -134,6 +134,15 @@ const STATES = [
   { value: 'WI', label: 'Wisconsin' }, { value: 'WY', label: 'Wyoming' }
 ];
 
+const INVESTMENT_TYPES = [
+  { value: 'real_estate', label: 'Real Estate' },
+  { value: 'private_equity', label: 'Private Equity' },
+  { value: 'hedge_fund', label: 'Hedge Fund' },
+  { value: 'crypto', label: 'Cryptocurrency' },
+  { value: 'annuity', label: 'Annuity' },
+  { value: 'other', label: 'Other' }
+];
+
 export default function InputForm({ onSubmit, isLoading }) {
   const [formData, setFormData] = useState({
     current_age: 35,
@@ -174,7 +183,9 @@ export default function InputForm({ onSubmit, isLoading }) {
     // Pension
     pension_annual_benefit: 0,
     pension_start_age: 65,
-    pension_has_cola: false
+    pension_has_cola: false,
+    // Alternative Investments
+    alternative_investments: []
   });
 
   const [errors, setErrors] = useState({});
@@ -319,6 +330,39 @@ export default function InputForm({ onSubmit, isLoading }) {
     });
   };
 
+  // Alternative Investment handlers
+  const addAlternativeInvestment = () => {
+    setFormData(prev => ({
+      ...prev,
+      alternative_investments: [
+        ...prev.alternative_investments,
+        {
+          id: Date.now(),
+          name: '',
+          investment_type: 'real_estate',
+          current_value: 0,
+          expected_return: 7
+        }
+      ]
+    }));
+  };
+
+  const removeAlternativeInvestment = (id) => {
+    setFormData(prev => ({
+      ...prev,
+      alternative_investments: prev.alternative_investments.filter(inv => inv.id !== id)
+    }));
+  };
+
+  const updateAlternativeInvestment = (id, field, value) => {
+    setFormData(prev => ({
+      ...prev,
+      alternative_investments: prev.alternative_investments.map(inv =>
+        inv.id === id ? { ...inv, [field]: value } : inv
+      )
+    }));
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
 
@@ -384,7 +428,16 @@ export default function InputForm({ onSubmit, isLoading }) {
           start_age: formData.pension_start_age,
           has_cola: formData.pension_has_cola,
           cola_rate: 0.02
-        } : null
+        } : null,
+        // Alternative Investments
+        alternative_investments: formData.alternative_investments.map(inv => ({
+          name: inv.name || 'Unnamed Investment',
+          investment_type: inv.investment_type,
+          current_value: inv.current_value || 0,
+          expected_return: (inv.expected_return || 7) / 100,
+          volatility: 0.15,
+          liquidity: 'medium'
+        }))
       },
       params: {
         num_simulations: formData.num_simulations,
@@ -741,6 +794,104 @@ export default function InputForm({ onSubmit, isLoading }) {
             </span>
           </label>
         </div>
+      </Section>
+
+      <Section title="Alternative Investments" defaultOpen={false}>
+        <p className="text-xs mb-4" style={{ color: 'var(--text-muted)' }}>
+          Add real estate, crypto, private equity, or other alternative investments.
+        </p>
+
+        {formData.alternative_investments.map((investment, index) => (
+          <div
+            key={investment.id}
+            className="p-3 mb-3 rounded-lg border"
+            style={{ borderColor: 'var(--border)', background: 'var(--bg-secondary)' }}
+          >
+            <div className="flex justify-between items-center mb-3">
+              <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+                Investment {index + 1}
+              </span>
+              <button
+                type="button"
+                onClick={() => removeAlternativeInvestment(investment.id)}
+                className="p-1 rounded hover:bg-[var(--coral)] hover:bg-opacity-20 transition-colors"
+                style={{ color: 'var(--coral)' }}
+                aria-label={`Remove investment ${index + 1}`}
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="grid grid-cols-2 gap-3 mb-3">
+              <div>
+                <label className="input-label">Name</label>
+                <input
+                  type="text"
+                  value={investment.name}
+                  onChange={(e) => updateAlternativeInvestment(investment.id, 'name', e.target.value)}
+                  placeholder="e.g., Rental Property"
+                  className="input-field"
+                />
+              </div>
+              <div>
+                <label className="input-label">Type</label>
+                <select
+                  value={investment.investment_type}
+                  onChange={(e) => updateAlternativeInvestment(investment.id, 'investment_type', e.target.value)}
+                  className="input-field cursor-pointer"
+                >
+                  {INVESTMENT_TYPES.map(type => (
+                    <option key={type.value} value={type.value}>{type.label}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="input-label">Current Value</label>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)] font-mono text-sm">$</span>
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    value={investment.current_value ? investment.current_value.toLocaleString('en-US') : ''}
+                    onChange={(e) => {
+                      const cleanValue = e.target.value.replace(/,/g, '');
+                      const numValue = parseFloat(cleanValue) || 0;
+                      updateAlternativeInvestment(investment.id, 'current_value', numValue);
+                    }}
+                    className="input-field pl-8"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="input-label">Expected Return</label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    value={investment.expected_return}
+                    onChange={(e) => {
+                      const numValue = parseFloat(e.target.value) || 0;
+                      updateAlternativeInvestment(investment.id, 'expected_return', numValue);
+                    }}
+                    className="input-field pr-10"
+                  />
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)] font-mono text-sm">%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+
+        <button
+          type="button"
+          onClick={addAlternativeInvestment}
+          className="w-full py-2 px-4 rounded-lg border border-dashed flex items-center justify-center gap-2 transition-colors hover:border-[var(--emerald)] hover:text-[var(--emerald)]"
+          style={{ borderColor: 'var(--border)', color: 'var(--text-muted)' }}
+        >
+          <Plus className="w-4 h-4" />
+          <span className="text-sm">Add Investment</span>
+        </button>
       </Section>
 
       <Section title="Simulation" defaultOpen={false}>
