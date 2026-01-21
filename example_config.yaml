@@ -1,0 +1,17 @@
+# Monte Carlo Financial Simulation Suite - Example Configuration
+# This file demonstrates a portfolio projection simulation
+
+simulation_type: portfolio  # Options: portfolio, retirement, var, options
+num_simulations: 10000
+time_horizon_years: 30
+random_seed: 42  # Optional: for reproducibility
+
+# Output directory for results and charts
+output_dir: ./output
+
+# Portfolio Simulation Configuration
+portfolio:
+  initial_value: 100000        # Starting investment
+  monthly_contribution: 1000   # Regular monthly contributions
+  expected_annual_return: 0.07 # 7% expected annual return
+  annual_volatility: 0.15      # 15% annual volatility

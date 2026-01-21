@@ -1,0 +1,15 @@
+# Retirement Planning Simulation
+simulation_type: retirement
+num_simulations: 10000
+time_horizon_years: 50
+random_seed: 42
+
+retirement:
+  current_savings: 500000
+  retirement_age: 65
+  current_age: 35
+  monthly_contribution: 2000
+  withdrawal_rate: 0.04
+  inflation_rate: 0.025
+  expected_annual_return: 0.07
+  annual_volatility: 0.15

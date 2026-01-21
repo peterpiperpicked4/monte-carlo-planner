@@ -1,0 +1,13 @@
+# Option Pricing Simulation
+simulation_type: options
+num_simulations: 100000
+time_horizon_years: 1
+random_seed: 42
+
+options:
+  option_type: call
+  spot_price: 100
+  strike_price: 105
+  risk_free_rate: 0.05
+  volatility: 0.20
+  time_to_maturity_years: 1.0

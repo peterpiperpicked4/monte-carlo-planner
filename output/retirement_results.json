@@ -1,0 +1,43 @@
+{
+  "simulation_type": "retirement",
+  "num_simulations": 10000,
+  "time_horizon_years": 50,
+  "statistics": {
+    "mean": 12943200.017758213,
+    "median": 6277052.936041961,
+    "std": 21503520.350375894,
+    "min": 0.0,
+    "max": 429251143.7638774,
+    "skewness": 5.875275616687393,
+    "kurtosis": 63.558524358185025,
+    "var_95": 0.0,
+    "var_99": 0.0
+  },
+  "percentiles": {
+    "p5": 0.0,
+    "p10": 281105.49955791084,
+    "p25": 2154343.365235939,
+    "p50": 6277052.936041961,
+    "p75": 15181661.6163968,
+    "p90": 30935269.357939214,
+    "p95": 47317359.52422568
+  },
+  "custom_metrics": {
+    "years_to_retirement": 30,
+    "years_in_retirement": 20,
+    "initial_savings": 500000,
+    "withdrawal_rate": 0.04,
+    "inflation_rate": 0.025,
+    "probability_of_success": 0.9215,
+    "probability_of_ruin": 0.07850000000000001,
+    "median_retirement_value": 5052182.743684016,
+    "p10_retirement_value": 2100883.304836566,
+    "p90_retirement_value": 12943570.514710333,
+    "median_final_value": 6277052.936041961,
+    "p10_final_value": 281105.49955791084,
+    "p90_final_value": 30935269.357939214,
+    "median_ruin_month": 570.0,
+    "median_ruin_year": 47.5,
+    "estimated_safe_withdrawal_rate_95": 0.13402120017578803
+  }
+}

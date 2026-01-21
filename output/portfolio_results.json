@@ -1,0 +1,43 @@
+{
+  "simulation_type": "portfolio",
+  "num_simulations": 10000,
+  "time_horizon_years": 30,
+  "statistics": {
+    "mean": 2081033.5913874428,
+    "median": 1634886.8392022005,
+    "std": 1628393.3496430358,
+    "min": 115561.57139945765,
+    "max": 19708104.06717215,
+    "skewness": 3.016757556153775,
+    "kurtosis": 16.198288573371205,
+    "var_95": 596772.5075578165,
+    "var_99": 421439.4231358444
+  },
+  "percentiles": {
+    "p5": 596772.5075578165,
+    "p10": 731780.5538187461,
+    "p25": 1056139.172405656,
+    "p50": 1634886.8392022005,
+    "p75": 2539783.584270036,
+    "p90": 3916322.2123362673,
+    "p95": 5014326.7992115505
+  },
+  "custom_metrics": {
+    "initial_investment": 100000,
+    "total_contributions": 460000,
+    "median_final_value": 1634886.8392022005,
+    "expected_final_value": 2081033.5913874428,
+    "median_gain": 1174886.8392022005,
+    "probability_of_profit": 0.9829,
+    "prob_reaching_250,000": 0.9997,
+    "prob_reaching_500,000": 0.9758,
+    "prob_reaching_1,000,000": 0.7761,
+    "prob_reaching_2,000,000": 0.38,
+    "prob_reaching_5,000,000": 0.0506,
+    "median_path_max_drawdown": 0.0012765299310179376,
+    "worst_case_max_drawdown": 0.8211909671302391,
+    "median_growth_multiple": 3.55410182435261,
+    "p10_growth_multiple": 1.5908272909103178,
+    "p90_growth_multiple": 8.51374393986145
+  }
+}

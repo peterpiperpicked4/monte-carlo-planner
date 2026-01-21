@@ -1,0 +1,47 @@
+# Ralph Progress Log
+Feature: AI Financial Discovery & Alternative Investments
+Started: 2026-01-21 21:40 PST
+
+## Codebase Patterns
+- React 18 with Vite, Tailwind CSS
+- Components use memo() for optimization
+- CSS colors defined in src/utils/colors.js (CSS_COLORS, HEX_COLORS)
+- Form state managed with useState in InputForm.jsx
+- Backend is FastAPI with Pydantic models in web/backend/models.py
+- Simulation logic in web/backend/routes/simulate.py
+- Financial calculations in web/backend/services/financial_calcs.py
+- Claude AI integration in web/backend/services/claude.py
+- Collapsible sections use the Section component pattern in InputForm.jsx
+- Backend runs on port 8000, frontend on port 1794
+
+## Existing Infrastructure
+- Social Security, Healthcare, Pension models already in models.py
+- AlternativeInvestment model already defined (needs wiring)
+- Financial calc service has SS benefit calculation, RMD, withdrawal sequencing
+- AI analysis endpoint exists at /api/analyze
+
+---
+
+## Iteration - 2026-01-21 22:00 PST
+**Story:** US-001 - Create Alternative Investments Backend Models
+**Status:** Completed
+
+**What was implemented:**
+- Wired alternative investments into the Monte Carlo simulation
+- Alternative investment values are now summed and added to initial portfolio value
+- Verified all acceptance criteria pass:
+  - AlternativeInvestment model already existed with all required fields
+  - UserProfile already accepted alternative_investments array
+  - Added code to sum alternative investment values into initial_savings
+  - Backend starts without errors
+  - POST /api/simulate returns 200 with alternative investments (verified: 200k savings + 150k real_estate + 50k crypto = 400k initial portfolio)
+
+**Files changed:**
+- web/backend/routes/simulate.py (added AlternativeInvestment import, added alternative investments to initial portfolio value)
+
+**Learnings for future iterations:**
+- The AlternativeInvestment model was already fully defined, just needed wiring
+- The simulation uses initial_savings as the starting point - alternative investments add to this
+- Test with curl to verify API responses
+
+---

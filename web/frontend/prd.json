@@ -1,0 +1,104 @@
+{
+  "project": "monte-carlo-planner",
+  "feature": "AI Financial Discovery & Alternative Investments",
+  "createdAt": "2026-01-21T21:40:00Z",
+  "estimatedIterations": 6,
+  "maxIterations": 10,
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Create Alternative Investments Backend Models",
+      "description": "Add backend support for alternative investment types in the simulation",
+      "acceptanceCriteria": [
+        "AlternativeInvestment model exists in models.py with fields: name, type (real_estate/private_equity/crypto/annuity), value, expected_return, volatility",
+        "Simulation route accepts alternative_investments array in profile",
+        "Alternative investments are added to initial portfolio value in simulation",
+        "Backend server starts without errors",
+        "POST /api/simulate returns 200 with alternative investments in payload"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "Models already partially exist, need to wire into simulation"
+    },
+    {
+      "id": "US-002",
+      "title": "Add Alternative Investments Form Section",
+      "description": "Create UI for users to add alternative investments like real estate, crypto, private equity",
+      "acceptanceCriteria": [
+        "New collapsible 'Alternative Investments' section exists in InputForm.jsx",
+        "User can add investment with: name, type dropdown, current value, expected return",
+        "User can remove an investment",
+        "Form state includes alternative_investments array",
+        "Payload sent to backend includes alternative_investments array",
+        "No console errors when adding/removing investments"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-003",
+      "title": "Create AI Discovery Component Shell",
+      "description": "Build the AIDiscovery component that will house the conversational financial discovery",
+      "acceptanceCriteria": [
+        "AIDiscovery.jsx component exists in src/components/",
+        "Component renders a chat-like interface with message bubbles",
+        "Component accepts onUpdateProfile callback prop",
+        "Component is imported and rendered in App.jsx (can be toggled)",
+        "Basic styling matches app theme (dark mode, emerald accents)",
+        "No TypeScript/lint errors"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-004",
+      "title": "Implement AI Discovery Questions Logic",
+      "description": "Add smart question generation based on profile gaps",
+      "acceptanceCriteria": [
+        "AIDiscovery component analyzes current form data to find gaps",
+        "Component generates contextual questions (e.g., 'Do you have a pension?' if pension is $0)",
+        "At least 5 different question types: Social Security, healthcare, pension, risk tolerance, goals",
+        "Questions are shown one at a time with suggested answers",
+        "User can skip questions or provide answers",
+        "Answers update the form state via onUpdateProfile callback"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-005",
+      "title": "Add AI Discovery API Integration",
+      "description": "Connect AI Discovery to Claude API for intelligent responses",
+      "acceptanceCriteria": [
+        "New /api/discovery endpoint exists in backend",
+        "Endpoint accepts user profile and returns personalized questions/insights",
+        "AIDiscovery component calls this endpoint",
+        "Response includes: suggested questions, profile completeness score, recommendations",
+        "Loading state shown while waiting for API",
+        "Graceful fallback if API fails (use local question logic)"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-006",
+      "title": "Polish AI Discovery UX and What-If Scenarios",
+      "description": "Add what-if scenario suggestions and polish the discovery experience",
+      "acceptanceCriteria": [
+        "AI can suggest what-if scenarios (e.g., 'What if you retired 2 years earlier?')",
+        "User can apply a what-if scenario which updates form temporarily",
+        "User can reset to original values",
+        "Progress indicator shows profile completeness percentage",
+        "Smooth animations between questions",
+        "Component is fully keyboard accessible"
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": ""
+    }
+  ]
+}

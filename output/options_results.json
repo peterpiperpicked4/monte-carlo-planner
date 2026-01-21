@@ -1,0 +1,49 @@
+{
+  "simulation_type": "options",
+  "num_simulations": 100000,
+  "time_horizon_years": 1,
+  "statistics": {
+    "mean": 8.048759511032427,
+    "median": 0.0,
+    "std": 13.31315290143192,
+    "min": 0.0,
+    "max": 147.85477988632738,
+    "skewness": 2.1928050957051606,
+    "kurtosis": 5.82398263845039,
+    "var_95": 0.0,
+    "var_99": 0.0
+  },
+  "percentiles": {
+    "p5": 0.0,
+    "p10": 0.0,
+    "p25": 0.0,
+    "p50": 0.0,
+    "p75": 12.215534023766615,
+    "p90": 26.788020100190653,
+    "p95": 36.65436401496069
+  },
+  "custom_metrics": {
+    "option_type": "call",
+    "spot_price": 100,
+    "strike_price": 105,
+    "risk_free_rate": 0.05,
+    "volatility": 0.2,
+    "time_to_maturity": 1.0,
+    "mc_price": 8.048759511032427,
+    "mc_std_error": 0.042099886006604,
+    "mc_95_ci_lower": 7.966243734459484,
+    "mc_95_ci_upper": 8.131275287605371,
+    "bs_price": 8.021352235143176,
+    "price_difference": 0.02740727588925118,
+    "price_difference_pct": 0.34167899732883356,
+    "bs_delta": 0.5422283335848053,
+    "bs_gamma": 0.019835261904213263,
+    "bs_vega": 0.3967052380842653,
+    "bs_theta": -0.017197606676738413,
+    "probability_itm": 0.4632,
+    "expected_payoff_if_itm": 17.376423814836855,
+    "expected_final_price": 105.1672316236329,
+    "final_price_std": 21.326613015525773,
+    "prob_above_strike": 0.4632
+  }
+}
