@@ -331,3 +331,48 @@ class AnalyzeResponse(BaseModel):
     recommendations: List[AIRecommendation]
     risk_assessment: str
     confidence_score: float
+
+
+# ============================================================================
+# AI Discovery Models
+# ============================================================================
+
+class DiscoveryQuestion(BaseModel):
+    """A generated discovery question."""
+    id: str
+    question: str
+    question_type: str  # Social Security, Pension, Healthcare, Risk Tolerance, Goals, Savings
+    suggestions: List[Dict[str, Any]] = Field(default_factory=list)
+    priority: int = Field(default=1, ge=1, le=5)
+
+
+class DiscoveryRequest(BaseModel):
+    """Request for AI discovery endpoint."""
+    profile: Dict[str, Any] = Field(
+        ...,
+        description="Current user profile data from the form"
+    )
+    answered_questions: List[str] = Field(
+        default_factory=list,
+        description="IDs of questions already answered"
+    )
+
+
+class DiscoveryResponse(BaseModel):
+    """Response from AI discovery endpoint."""
+    questions: List[DiscoveryQuestion] = Field(
+        default_factory=list,
+        description="Suggested questions based on profile gaps"
+    )
+    completeness_score: float = Field(
+        default=0.0, ge=0.0, le=1.0,
+        description="Profile completeness percentage (0-1)"
+    )
+    recommendations: List[str] = Field(
+        default_factory=list,
+        description="Personalized recommendations based on profile"
+    )
+    insights: List[str] = Field(
+        default_factory=list,
+        description="Insights about the user's financial situation"
+    )

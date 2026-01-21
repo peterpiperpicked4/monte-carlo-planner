@@ -1,5 +1,7 @@
 """Claude AI integration service."""
 import os
+import json
+import re
 from typing import Dict, Any, List
 from anthropic import Anthropic
 
@@ -118,9 +120,6 @@ async def analyze_profile(
     response_text = message.content[0].text
 
     # Extract JSON from response
-    import json
-    import re
-
     json_match = re.search(r'```json\s*(.*?)\s*```', response_text, re.DOTALL)
     if json_match:
         json_str = json_match.group(1)
@@ -136,6 +135,128 @@ async def analyze_profile(
             "summary": "Analysis could not be completed. Please try again.",
             "recommendations": [],
             "risk_assessment": "Unable to assess at this time."
+        }
+
+    return result
+
+
+def build_discovery_prompt(profile: Dict[str, Any], answered_questions: List[str]) -> str:
+    """Build prompt for Claude discovery analysis."""
+    # Extract key profile info for context
+    current_age = profile.get('current_age', 35)
+    retirement_age = profile.get('retirement_age', 65)
+    current_savings = profile.get('current_savings', 0)
+    annual_income = profile.get('annual_income', 0)
+    risk_tolerance = profile.get('risk_tolerance', 5)
+    ss_benefit = profile.get('ss_benefit_at_fra', 0)
+    pension_benefit = profile.get('pension_annual_benefit', 0)
+    monthly_contribution = profile.get('monthly_contribution', 0)
+    retirement_income_goal = profile.get('retirement_income_goal', 80000)
+
+    prompt = f"""You are a financial planning assistant helping users complete their retirement profile through a conversational discovery process.
+
+## Current User Profile
+
+- Age: {current_age}
+- Target Retirement Age: {retirement_age}
+- Years to Retirement: {retirement_age - current_age}
+- Current Savings: ${current_savings:,.0f}
+- Annual Income: ${annual_income:,.0f}
+- Monthly Contribution: ${monthly_contribution:,.0f}
+- Risk Tolerance: {risk_tolerance}/10
+- Social Security Benefit (at FRA): ${ss_benefit:,.0f}/month
+- Pension Benefit: ${pension_benefit:,.0f}/year
+- Retirement Income Goal: ${retirement_income_goal:,.0f}/year
+
+## Questions Already Answered
+{', '.join(answered_questions) if answered_questions else 'None yet'}
+
+## Your Task
+
+Analyze this profile and provide:
+
+1. **Profile Completeness Score** (0-100%): How complete is their retirement profile?
+
+2. **Top 3 Priority Questions**: What additional information would most improve their financial plan accuracy?
+   Focus on areas like:
+   - Social Security claiming strategy (if benefit > 0 but claiming age not optimized)
+   - Healthcare costs (especially for early retirement before Medicare at 65)
+   - Pension details (if they might have one)
+   - Risk tolerance alignment with timeline
+   - Savings rate optimization
+   - Employer match maximization
+   - Legacy/inheritance goals
+
+3. **2-3 Personalized Insights**: What stands out about their financial situation? Be specific with numbers.
+
+4. **2-3 Actionable Recommendations**: Based on what you know, what should they focus on?
+
+Format as JSON:
+```json
+{{
+  "completeness_score": 0.75,
+  "questions": [
+    {{
+      "id": "unique_id",
+      "question": "Question text",
+      "question_type": "Category",
+      "suggestions": [
+        {{"label": "Answer option", "value": {{"field": "value"}} }},
+        {{"label": "Another option", "value": {{"field": "value"}} }}
+      ],
+      "priority": 1
+    }}
+  ],
+  "insights": [
+    "Specific insight about their situation..."
+  ],
+  "recommendations": [
+    "Actionable recommendation..."
+  ]
+}}
+```
+
+Be specific and reference their actual numbers. Question suggestions should have values that can be directly applied to update their profile."""
+
+    return prompt
+
+
+async def discover_profile(
+    profile: Dict[str, Any],
+    answered_questions: List[str]
+) -> Dict[str, Any]:
+    """Analyze user profile and generate discovery questions using Claude."""
+    client = get_client()
+
+    prompt = build_discovery_prompt(profile, answered_questions)
+
+    message = client.messages.create(
+        model="claude-sonnet-4-20250514",
+        max_tokens=2000,
+        messages=[
+            {"role": "user", "content": prompt}
+        ]
+    )
+
+    response_text = message.content[0].text
+
+    # Extract JSON from response
+    json_match = re.search(r'```json\s*(.*?)\s*```', response_text, re.DOTALL)
+    if json_match:
+        json_str = json_match.group(1)
+    else:
+        # Try to parse the whole response as JSON
+        json_str = response_text
+
+    try:
+        result = json.loads(json_str)
+    except json.JSONDecodeError:
+        # Fallback response
+        result = {
+            "completeness_score": 0.5,
+            "questions": [],
+            "insights": ["Unable to analyze profile at this time."],
+            "recommendations": ["Please try again or use the form to enter your information."]
         }
 
     return result

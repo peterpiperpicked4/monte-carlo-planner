@@ -2,8 +2,11 @@
 from fastapi import APIRouter, HTTPException
 import os
 
-from models import AnalyzeRequest, AnalyzeResponse, AIRecommendation
-from services.claude import analyze_profile
+from models import (
+    AnalyzeRequest, AnalyzeResponse, AIRecommendation,
+    DiscoveryRequest, DiscoveryResponse, DiscoveryQuestion
+)
+from services.claude import analyze_profile, discover_profile
 
 router = APIRouter()
 
@@ -160,3 +163,188 @@ async def analyze_simulation(request: AnalyzeRequest):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+def generate_mock_discovery(request: DiscoveryRequest) -> DiscoveryResponse:
+    """Generate mock discovery response based on profile gaps."""
+    profile = request.profile
+    answered = set(request.answered_questions)
+
+    # Calculate completeness score based on filled fields
+    important_fields = [
+        ('current_age', 35),
+        ('retirement_age', 65),
+        ('current_savings', 0),
+        ('annual_income', 0),
+        ('monthly_contribution', 0),
+        ('risk_tolerance', 5),
+        ('ss_benefit_at_fra', 0),
+        ('pension_annual_benefit', 0),
+        ('retirement_income_goal', 80000),
+        ('legacy_goal', 0),
+        ('hc_pre_medicare_premium', 0),
+        ('employer_match_percent', 0),
+    ]
+
+    filled_count = 0
+    for field, default in important_fields:
+        value = profile.get(field)
+        if value is not None and value != default:
+            filled_count += 1
+
+    completeness_score = min(1.0, filled_count / len(important_fields) + 0.3)
+
+    # Generate questions based on gaps
+    questions = []
+
+    # Check Social Security
+    if 'social_security' not in answered and (
+        not profile.get('ss_benefit_at_fra') or profile.get('ss_benefit_at_fra') == 0
+    ):
+        questions.append(DiscoveryQuestion(
+            id='social_security',
+            question="Have you checked your estimated Social Security benefit? This can significantly impact your retirement income.",
+            question_type='Social Security',
+            suggestions=[
+                {'label': 'Yes, about $2,000/month', 'value': {'ss_benefit_at_fra': 2000}},
+                {'label': 'Yes, about $3,000/month', 'value': {'ss_benefit_at_fra': 3000}},
+                {'label': "I haven't checked yet", 'value': None},
+                {'label': "I don't expect SS benefits", 'value': {'ss_benefit_at_fra': 0}}
+            ],
+            priority=1
+        ))
+
+    # Check pension
+    if 'pension' not in answered and (
+        not profile.get('pension_annual_benefit') or profile.get('pension_annual_benefit') == 0
+    ):
+        questions.append(DiscoveryQuestion(
+            id='pension',
+            question="Do you have a pension or defined benefit plan from an employer?",
+            question_type='Pension',
+            suggestions=[
+                {'label': 'Yes, about $20,000/year', 'value': {'pension_annual_benefit': 20000, 'pension_start_age': 65}},
+                {'label': 'Yes, about $40,000/year', 'value': {'pension_annual_benefit': 40000, 'pension_start_age': 65}},
+                {'label': 'No pension', 'value': {'pension_annual_benefit': 0}}
+            ],
+            priority=2
+        ))
+
+    # Check healthcare
+    retirement_age = profile.get('retirement_age', 65)
+    if 'healthcare' not in answered and retirement_age < 65 and (
+        not profile.get('hc_pre_medicare_premium') or profile.get('hc_pre_medicare_premium') < 6000
+    ):
+        questions.append(DiscoveryQuestion(
+            id='healthcare',
+            question=f"Since you plan to retire at {retirement_age}, before Medicare eligibility at 65, have you budgeted for health insurance?",
+            question_type='Healthcare',
+            suggestions=[
+                {'label': 'ACA marketplace plan (~$12k/yr)', 'value': {'hc_pre_medicare_premium': 12000, 'hc_pre_medicare_oop': 4000}},
+                {'label': 'COBRA coverage (~$18k/yr)', 'value': {'hc_pre_medicare_premium': 18000, 'hc_pre_medicare_oop': 3000}},
+                {'label': "Spouse's employer plan", 'value': {'hc_pre_medicare_premium': 6000, 'hc_pre_medicare_oop': 2000}},
+                {'label': "I'll work until 65 for insurance", 'value': None}
+            ],
+            priority=1
+        ))
+
+    # Check risk tolerance
+    if 'risk_tolerance' not in answered and profile.get('risk_tolerance') == 5:
+        questions.append(DiscoveryQuestion(
+            id='risk_tolerance',
+            question="How would you describe your investment risk tolerance?",
+            question_type='Risk Tolerance',
+            suggestions=[
+                {'label': 'Conservative (preserve capital)', 'value': {'risk_tolerance': 3}},
+                {'label': 'Moderate (balanced growth)', 'value': {'risk_tolerance': 5}},
+                {'label': 'Aggressive (maximum growth)', 'value': {'risk_tolerance': 8}}
+            ],
+            priority=3
+        ))
+
+    # Check employer match
+    annual_income = profile.get('annual_income', 0)
+    if 'employer_match' not in answered and annual_income > 50000 and (
+        not profile.get('employer_match_percent') or profile.get('employer_match_percent') == 0
+    ):
+        questions.append(DiscoveryQuestion(
+            id='employer_match',
+            question="Does your employer offer a 401(k) match? This is free money you don't want to leave on the table!",
+            question_type='Savings',
+            suggestions=[
+                {'label': 'Yes, 3% match', 'value': {'employer_match_percent': 3, 'employer_match_limit': 6000}},
+                {'label': 'Yes, 6% match', 'value': {'employer_match_percent': 6, 'employer_match_limit': 12000}},
+                {'label': 'No employer match', 'value': {'employer_match_percent': 0}},
+                {'label': 'Self-employed / no 401k', 'value': None}
+            ],
+            priority=2
+        ))
+
+    # Generate insights
+    insights = []
+    current_age = profile.get('current_age', 35)
+    current_savings = profile.get('current_savings', 0)
+    monthly_contribution = profile.get('monthly_contribution', 0)
+
+    years_to_retire = retirement_age - current_age
+    if years_to_retire > 0:
+        insights.append(f"You have {years_to_retire} years until retirement at age {retirement_age}.")
+
+    if current_savings > 0 and annual_income > 0:
+        savings_ratio = current_savings / annual_income
+        if savings_ratio >= 3:
+            insights.append(f"Your current savings of ${current_savings:,.0f} is {savings_ratio:.1f}x your annual income - a strong start!")
+        else:
+            insights.append(f"Your current savings of ${current_savings:,.0f} is {savings_ratio:.1f}x your annual income.")
+
+    if monthly_contribution > 0 and annual_income > 0:
+        savings_rate = (monthly_contribution * 12) / annual_income * 100
+        insights.append(f"You're saving {savings_rate:.0f}% of your income annually (${monthly_contribution * 12:,.0f}/year).")
+
+    # Generate recommendations
+    recommendations = []
+    if monthly_contribution > 0 and annual_income > 0:
+        savings_rate = (monthly_contribution * 12) / annual_income
+        if savings_rate < 0.15:
+            recommendations.append(f"Consider increasing your savings rate from {savings_rate*100:.0f}% to 15-20% for a more secure retirement.")
+
+    if years_to_retire > 20 and profile.get('risk_tolerance', 5) < 5:
+        recommendations.append("With 20+ years to retirement, you may be able to tolerate more investment risk for higher growth potential.")
+
+    if not recommendations:
+        recommendations.append("Keep up your current savings trajectory and run a simulation to see your projected outcomes.")
+
+    return DiscoveryResponse(
+        questions=questions[:3],  # Limit to top 3 questions
+        completeness_score=completeness_score,
+        recommendations=recommendations,
+        insights=insights
+    )
+
+
+@router.post("/discovery", response_model=DiscoveryResponse)
+async def discovery_questions(request: DiscoveryRequest):
+    """Generate personalized discovery questions based on profile gaps."""
+    try:
+        # Check for API key
+        if not os.getenv("ANTHROPIC_API_KEY"):
+            # Return mock response based on profile analysis
+            return generate_mock_discovery(request)
+
+        result = await discover_profile(request.profile, request.answered_questions)
+
+        # Convert questions to DiscoveryQuestion models
+        questions = [
+            DiscoveryQuestion(**q) for q in result.get("questions", [])
+        ]
+
+        return DiscoveryResponse(
+            questions=questions,
+            completeness_score=result.get("completeness_score", 0.5),
+            recommendations=result.get("recommendations", []),
+            insights=result.get("insights", [])
+        )
+
+    except Exception as e:
+        # Fallback to mock response on any error
+        return generate_mock_discovery(request)
