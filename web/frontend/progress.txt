@@ -182,3 +182,48 @@ Started: 2026-01-21 21:40 PST
 - Keep local fallback questions in sync with backend mock generator questions
 
 ---
+
+## Iteration - 2026-01-21 21:50 PST
+**Story:** US-006 - Polish AI Discovery UX and What-If Scenarios
+**Status:** Completed
+
+**What was implemented:**
+- Added WHAT_IF_SCENARIOS array with 7 scenario definitions:
+  - Retire 2 years earlier/later
+  - Save $500 more/month
+  - Delay Social Security to 70
+  - Reduce retirement income by 10%
+  - More aggressive/conservative portfolio
+- Each scenario has dynamic descriptions based on current profile values
+- Created WhatIfCard component with hover/focus states and active state styling
+- Created WhatIfBanner component that shows when a what-if is active with Reset button
+- Added what-if state management (activeWhatIf, originalValues) to track applied scenarios
+- Implemented handleApplyWhatIf - saves original values, applies changes to profile
+- Implemented handleResetWhatIf - restores original values, clears what-if state
+- Added showWhatIf flag to messages to display what-if scenarios in completion message
+- Enhanced CompletionBadge with ARIA progressbar role for accessibility
+- Added animate-fade-in-up to MessageBubble for smooth question transitions
+- Added new CSS animations: slideDown, scaleIn with reduced motion support
+- All interactive elements have focus-visible keyboard focus styles
+- Added aria-label, aria-pressed, role="alert" for accessibility
+
+**Acceptance Criteria Verification:**
+- ✅ AI can suggest what-if scenarios (7 scenarios shown when questions complete)
+- ✅ User can apply a what-if scenario (updates form temporarily via handleApplyWhatIf)
+- ✅ User can reset to original values (WhatIfBanner with Reset button, handleResetWhatIf)
+- ✅ Progress indicator shows completeness percentage (CompletionBadge with aria-valuenow)
+- ✅ Smooth animations between questions (animate-fade-in-up, 300ms duration)
+- ✅ Component is fully keyboard accessible (focus-visible, ARIA roles, reduced motion support)
+
+**Files changed:**
+- web/frontend/src/components/AIDiscovery.jsx (added what-if scenarios, state management, WhatIfCard, WhatIfBanner components)
+- web/frontend/src/index.css (added slideDown, scaleIn animations and reduced motion rules)
+- web/frontend/prd.json (marked US-006 as passes: true)
+
+**Learnings for future iterations:**
+- Store original values before applying what-if to enable clean reset
+- Use aria-pressed for toggle-like buttons (what-if cards)
+- Always include reduced motion support for new animations
+- WhatIfBanner uses role="alert" to announce to screen readers when scenario active
+
+---

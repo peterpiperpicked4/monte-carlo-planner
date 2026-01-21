@@ -1,6 +1,66 @@
 import React, { memo, useState, useCallback, useRef, useEffect, useMemo } from 'react';
-import { Sparkles, Send, User, Bot, SkipForward, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
+import { Sparkles, Send, User, Bot, SkipForward, Loader2, AlertCircle, RefreshCw, Lightbulb, RotateCcw, ChevronRight } from 'lucide-react';
 import { CSS_COLORS } from '../utils/colors';
+
+// What-if scenario definitions
+const WHAT_IF_SCENARIOS = [
+  {
+    id: 'retire_earlier',
+    label: 'Retire 2 years earlier',
+    description: 'See how retiring at {age} instead of {current} affects your plan',
+    getDescription: (profile) => `See how retiring at ${profile.retirement_age - 2} instead of ${profile.retirement_age} affects your plan`,
+    changes: (profile) => ({ retirement_age: profile.retirement_age - 2 }),
+    check: (profile) => profile.retirement_age > 57
+  },
+  {
+    id: 'retire_later',
+    label: 'Retire 2 years later',
+    description: 'See how waiting until {age} to retire improves your outlook',
+    getDescription: (profile) => `See how waiting until ${profile.retirement_age + 2} to retire improves your outlook`,
+    changes: (profile) => ({ retirement_age: profile.retirement_age + 2 }),
+    check: (profile) => profile.retirement_age < 70
+  },
+  {
+    id: 'save_more',
+    label: 'Save $500 more/month',
+    description: 'Increase your monthly contribution to {amount}',
+    getDescription: (profile) => `Increase your monthly contribution to $${((profile.monthly_contribution || 0) + 500).toLocaleString()}/month`,
+    changes: (profile) => ({ monthly_contribution: (profile.monthly_contribution || 0) + 500 }),
+    check: () => true
+  },
+  {
+    id: 'delay_ss',
+    label: 'Delay Social Security to 70',
+    description: 'Maximize your Social Security benefit by claiming at age 70',
+    getDescription: () => 'Maximize your Social Security benefit by claiming at age 70',
+    changes: () => ({ ss_claiming_age: 70 }),
+    check: (profile) => profile.ss_benefit_at_fra > 0 && profile.ss_claiming_age < 70
+  },
+  {
+    id: 'reduce_spending',
+    label: 'Reduce retirement income by 10%',
+    description: 'See how a more modest lifestyle affects your success rate',
+    getDescription: (profile) => `Reduce target to $${Math.round((profile.retirement_income_goal || 80000) * 0.9).toLocaleString()}/year`,
+    changes: (profile) => ({ retirement_income_goal: Math.round((profile.retirement_income_goal || 80000) * 0.9) }),
+    check: (profile) => profile.retirement_income_goal > 40000
+  },
+  {
+    id: 'aggressive_portfolio',
+    label: 'More aggressive portfolio',
+    description: 'Increase risk tolerance for potentially higher returns',
+    getDescription: () => 'Increase risk tolerance for potentially higher returns',
+    changes: () => ({ risk_tolerance: 8 }),
+    check: (profile) => profile.risk_tolerance < 7
+  },
+  {
+    id: 'conservative_portfolio',
+    label: 'More conservative portfolio',
+    description: 'Reduce risk for more stable but potentially lower returns',
+    getDescription: () => 'Reduce risk for more stable but potentially lower returns',
+    changes: () => ({ risk_tolerance: 3 }),
+    check: (profile) => profile.risk_tolerance > 4
+  }
+];
 
 // Local question definitions for fallback when API fails
 const FALLBACK_QUESTIONS = [
@@ -156,11 +216,12 @@ function calculateCompleteness(profile, answered) {
   return Math.min(1.0, baseScore + answeredBonus);
 }
 
-const MessageBubble = memo(function MessageBubble({ message, isUser, onSelectSuggestion }) {
+const MessageBubble = memo(function MessageBubble({ message, isUser, onSelectSuggestion, onApplyWhatIf, currentProfile, activeWhatIf }) {
   return (
     <div
-      className={`flex gap-3 ${isUser ? 'flex-row-reverse' : ''}`}
+      className={`flex gap-3 ${isUser ? 'flex-row-reverse' : ''} animate-fade-in-up`}
       role="listitem"
+      style={{ animationDuration: '300ms' }}
     >
       {/* Avatar */}
       <div
@@ -238,6 +299,30 @@ const MessageBubble = memo(function MessageBubble({ message, isUser, onSelectSug
                 </li>
               ))}
             </ul>
+          </div>
+        )}
+
+        {/* What-If Scenarios */}
+        {message.showWhatIf && currentProfile && onApplyWhatIf && (
+          <div className="mt-3 pt-3 border-t" style={{ borderColor: CSS_COLORS.border }}>
+            <p className="text-xs mb-2 uppercase tracking-wider flex items-center gap-1.5" style={{ color: CSS_COLORS.textMuted }}>
+              <Lightbulb className="w-3 h-3" />
+              What-if scenarios
+            </p>
+            <div className="space-y-2">
+              {WHAT_IF_SCENARIOS
+                .filter(scenario => scenario.check(currentProfile))
+                .slice(0, 3)
+                .map(scenario => (
+                  <WhatIfCard
+                    key={scenario.id}
+                    scenario={scenario}
+                    profile={currentProfile}
+                    onApply={onApplyWhatIf}
+                    isActive={activeWhatIf === scenario.id}
+                  />
+                ))}
+            </div>
           </div>
         )}
 
@@ -352,13 +437,13 @@ const LoadingIndicator = memo(function LoadingIndicator() {
 const CompletionBadge = memo(function CompletionBadge({ score }) {
   const percentage = Math.round(score * 100);
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-2" role="progressbar" aria-valuenow={percentage} aria-valuemin={0} aria-valuemax={100} aria-label={`Profile ${percentage}% complete`}>
       <div
         className="w-20 h-1.5 rounded-full overflow-hidden"
         style={{ background: CSS_COLORS.bgHover }}
       >
         <div
-          className="h-full rounded-full transition-all duration-500"
+          className="h-full rounded-full transition-all duration-500 ease-out"
           style={{
             width: `${percentage}%`,
             background: 'var(--gradient-emerald)'
@@ -368,6 +453,79 @@ const CompletionBadge = memo(function CompletionBadge({ score }) {
       <span className="text-xs font-mono" style={{ color: CSS_COLORS.textMuted }}>
         {percentage}%
       </span>
+    </div>
+  );
+});
+
+// What-if scenario card component
+const WhatIfCard = memo(function WhatIfCard({ scenario, profile, onApply, isActive }) {
+  const description = scenario.getDescription(profile);
+
+  return (
+    <button
+      onClick={() => onApply(scenario)}
+      disabled={isActive}
+      className="group w-full text-left p-3 rounded-lg border transition-all duration-200 hover:border-[var(--emerald)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--emerald)] disabled:opacity-50"
+      style={{
+        background: isActive ? 'rgba(16, 185, 129, 0.1)' : CSS_COLORS.bgSecondary,
+        borderColor: isActive ? CSS_COLORS.emerald : CSS_COLORS.border
+      }}
+      aria-pressed={isActive}
+    >
+      <div className="flex items-start gap-2">
+        <Lightbulb
+          className="w-4 h-4 mt-0.5 flex-shrink-0 transition-colors group-hover:text-[var(--emerald)]"
+          style={{ color: isActive ? CSS_COLORS.emerald : CSS_COLORS.textMuted }}
+        />
+        <div className="flex-1 min-w-0">
+          <span
+            className="text-sm font-medium transition-colors group-hover:text-[var(--emerald)]"
+            style={{ color: isActive ? CSS_COLORS.emerald : CSS_COLORS.textPrimary }}
+          >
+            {scenario.label}
+          </span>
+          <p className="text-xs mt-0.5 line-clamp-2" style={{ color: CSS_COLORS.textMuted }}>
+            {description}
+          </p>
+        </div>
+        <ChevronRight
+          className="w-4 h-4 flex-shrink-0 transition-transform group-hover:translate-x-0.5"
+          style={{ color: CSS_COLORS.textMuted }}
+        />
+      </div>
+    </button>
+  );
+});
+
+// Reset banner shown when a what-if scenario is active
+const WhatIfBanner = memo(function WhatIfBanner({ scenarioLabel, onReset }) {
+  return (
+    <div
+      className="px-6 py-3 flex items-center justify-between animate-slide-down"
+      style={{
+        background: 'rgba(16, 185, 129, 0.1)',
+        borderBottom: `1px solid ${CSS_COLORS.emerald}`
+      }}
+      role="alert"
+    >
+      <div className="flex items-center gap-2">
+        <Lightbulb className="w-4 h-4" style={{ color: CSS_COLORS.emerald }} />
+        <span className="text-sm" style={{ color: CSS_COLORS.emerald }}>
+          Previewing: <strong>{scenarioLabel}</strong>
+        </span>
+      </div>
+      <button
+        onClick={onReset}
+        className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-full border transition-all hover:bg-[var(--bg-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--emerald)]"
+        style={{
+          borderColor: CSS_COLORS.emerald,
+          color: CSS_COLORS.emerald
+        }}
+        aria-label="Reset to original values"
+      >
+        <RotateCcw className="w-3 h-3" />
+        Reset
+      </button>
     </div>
   );
 });
@@ -404,6 +562,10 @@ const AIDiscovery = memo(function AIDiscovery({ onUpdateProfile, formData }) {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [useLocalFallback, setUseLocalFallback] = useState(false);
   const [apiError, setApiError] = useState(null);
+
+  // What-if scenario state
+  const [activeWhatIf, setActiveWhatIf] = useState(null);
+  const [originalValues, setOriginalValues] = useState(null);
 
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
@@ -518,15 +680,16 @@ const AIDiscovery = memo(function AIDiscovery({ onUpdateProfile, formData }) {
     const unanswered = (data.questions || []).filter(q => !answeredQuestions.has(q.id));
 
     if (unanswered.length === 0) {
-      // All questions answered
+      // All questions answered - show what-if scenarios
       setTimeout(() => {
         setMessages(prev => [...prev, {
           id: Date.now(),
-          text: "Excellent! I've gathered all the information I need. Your profile is now more complete, which will help create more accurate retirement projections. Go ahead and run a simulation to see your results!",
+          text: "Excellent! I've gathered all the information I need. Your profile is now more complete. Would you like to explore some what-if scenarios to see how different choices might affect your retirement?",
           isUser: false,
           suggestions: [],
           insights: data.insights || [],
-          recommendations: data.recommendations || []
+          recommendations: data.recommendations || [],
+          showWhatIf: true
         }]);
         setIsTyping(false);
       }, 300);
@@ -667,6 +830,48 @@ const AIDiscovery = memo(function AIDiscovery({ onUpdateProfile, formData }) {
     await fetchDiscovery();
   }, [fetchDiscovery]);
 
+  // Apply a what-if scenario
+  const handleApplyWhatIf = useCallback((scenario) => {
+    // Save original values if not already in a what-if state
+    if (!originalValues) {
+      const changesKeys = Object.keys(scenario.changes(currentProfile));
+      const originals = {};
+      changesKeys.forEach(key => {
+        originals[key] = currentProfile[key];
+      });
+      setOriginalValues(originals);
+    }
+
+    // Apply the scenario changes
+    const changes = scenario.changes(currentProfile);
+    onUpdateProfile?.(changes);
+    setActiveWhatIf(scenario.id);
+
+    // Add a message about the what-if
+    setMessages(prev => [...prev, {
+      id: Date.now(),
+      text: `I've temporarily applied "${scenario.label}" to your profile. Run a simulation to see how this change affects your retirement outlook. Click "Reset" when you're done exploring.`,
+      isUser: false
+    }]);
+  }, [currentProfile, onUpdateProfile, originalValues]);
+
+  // Reset to original values
+  const handleResetWhatIf = useCallback(() => {
+    if (originalValues) {
+      onUpdateProfile?.(originalValues);
+      setOriginalValues(null);
+      setActiveWhatIf(null);
+
+      // Add confirmation message
+      setMessages(prev => [...prev, {
+        id: Date.now(),
+        text: "I've reset your profile to the original values. Feel free to try another what-if scenario or continue exploring.",
+        isUser: false,
+        showWhatIf: true
+      }]);
+    }
+  }, [originalValues, onUpdateProfile]);
+
   return (
     <section
       className="surface-elevated overflow-hidden animate-fade-in"
@@ -729,6 +934,14 @@ const AIDiscovery = memo(function AIDiscovery({ onUpdateProfile, formData }) {
         </div>
       )}
 
+      {/* What-If Active Banner */}
+      {activeWhatIf && (
+        <WhatIfBanner
+          scenarioLabel={WHAT_IF_SCENARIOS.find(s => s.id === activeWhatIf)?.label || 'Scenario'}
+          onReset={handleResetWhatIf}
+        />
+      )}
+
       {/* Messages Area */}
       <div
         className="p-6 space-y-4 overflow-y-auto"
@@ -745,6 +958,9 @@ const AIDiscovery = memo(function AIDiscovery({ onUpdateProfile, formData }) {
             message={message}
             isUser={message.isUser}
             onSelectSuggestion={handleSelectSuggestion}
+            onApplyWhatIf={handleApplyWhatIf}
+            currentProfile={currentProfile}
+            activeWhatIf={activeWhatIf}
           />
         ))}
 
