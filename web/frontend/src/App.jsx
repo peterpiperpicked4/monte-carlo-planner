@@ -11,6 +11,9 @@ import ErrorBoundary from './components/ErrorBoundary';
 import { CSS_COLORS } from './utils/colors';
 import { formatCurrency } from './utils/format';
 
+// API URL - uses environment variable in production, proxy in development
+const API_URL = import.meta.env.VITE_API_URL || '';
+
 function App() {
   const [results, setResults] = useState(null);
   const [analysis, setAnalysis] = useState(null);
@@ -32,7 +35,7 @@ function App() {
     setAnalysis(null);
 
     try {
-      const response = await fetch('/api/simulate', {
+      const response = await fetch(`${API_URL}/api/simulate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -47,7 +50,7 @@ function App() {
 
       setIsAnalyzing(true);
       try {
-        const analysisResponse = await fetch('/api/analyze', {
+        const analysisResponse = await fetch(`${API_URL}/api/analyze`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

@@ -2,6 +2,9 @@ import React, { memo, useState, useCallback, useRef, useEffect, useMemo } from '
 import { Sparkles, Send, User, Bot, SkipForward, Loader2, AlertCircle, RefreshCw, Lightbulb, RotateCcw, ChevronRight } from 'lucide-react';
 import { CSS_COLORS } from '../utils/colors';
 
+// API URL - uses environment variable in production, proxy in development
+const API_URL = import.meta.env.VITE_API_URL || '';
+
 // What-if scenario definitions
 const WHAT_IF_SCENARIOS = [
   {
@@ -576,7 +579,7 @@ const AIDiscovery = memo(function AIDiscovery({ onUpdateProfile, formData }) {
     setApiError(null);
 
     try {
-      const response = await fetch('http://localhost:8000/api/discovery', {
+      const response = await fetch(`${API_URL}/api/discovery`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
