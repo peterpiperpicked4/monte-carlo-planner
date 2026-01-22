@@ -220,7 +220,6 @@ const MessageBubble = memo(function MessageBubble({ message, isUser, onSelectSug
   return (
     <div
       className={`flex gap-3 ${isUser ? 'flex-row-reverse' : ''} animate-fade-in-up`}
-      role="listitem"
       style={{ animationDuration: '300ms' }}
     >
       {/* Avatar */}
@@ -340,7 +339,7 @@ const MessageBubble = memo(function MessageBubble({ message, isUser, onSelectSug
                 <button
                   key={idx}
                   onClick={() => onSelectSuggestion?.(suggestion, message.questionId)}
-                  className="px-3 py-1.5 text-xs rounded-full border transition-all hover:border-[var(--emerald)] hover:text-[var(--emerald)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--emerald)]"
+                  className="px-4 py-2.5 min-h-[44px] text-sm rounded-full border transition-all hover:border-[var(--emerald)] hover:text-[var(--emerald)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--emerald)]"
                   style={{
                     background: CSS_COLORS.bgElevated,
                     borderColor: CSS_COLORS.border,
@@ -359,10 +358,11 @@ const MessageBubble = memo(function MessageBubble({ message, isUser, onSelectSug
           <div className="mt-3 pt-3 border-t" style={{ borderColor: CSS_COLORS.border }}>
             <button
               onClick={() => onSelectSuggestion?.({ label: 'Skip', value: null, isSkip: true }, message.questionId)}
-              className="flex items-center gap-1 text-xs transition-colors hover:text-[var(--emerald)]"
+              className="flex items-center gap-2 px-3 py-2 min-h-[44px] text-sm rounded-lg transition-colors hover:text-[var(--emerald)] hover:bg-[var(--bg-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--emerald)]"
               style={{ color: CSS_COLORS.textMuted }}
+              aria-label="Skip this question and move to the next one"
             >
-              <SkipForward className="w-3 h-3" />
+              <SkipForward className="w-4 h-4" aria-hidden="true" />
               Skip this question
             </button>
           </div>
@@ -879,7 +879,7 @@ const AIDiscovery = memo(function AIDiscovery({ onUpdateProfile, formData }) {
     >
       {/* Header */}
       <div
-        className="px-6 py-4 border-b flex items-center justify-between"
+        className="px-4 sm:px-6 py-4 border-b flex flex-col sm:flex-row sm:items-center gap-3 sm:justify-between"
         style={{ borderColor: CSS_COLORS.border }}
       >
         <div className="flex items-center gap-3">
@@ -913,22 +913,25 @@ const AIDiscovery = memo(function AIDiscovery({ onUpdateProfile, formData }) {
       {/* API Error Banner */}
       {apiError && useLocalFallback && (
         <div
-          className="px-6 py-2 flex items-center justify-between text-xs"
+          className="px-6 py-3 flex items-center justify-between text-xs"
           style={{
             background: 'rgba(251, 191, 36, 0.1)',
             borderBottom: `1px solid ${CSS_COLORS.border}`
           }}
+          role="alert"
+          aria-live="polite"
         >
           <div className="flex items-center gap-2" style={{ color: CSS_COLORS.gold }}>
-            <AlertCircle className="w-3 h-3" />
-            <span>Using offline mode</span>
+            <AlertCircle className="w-4 h-4" aria-hidden="true" />
+            <span>Using offline mode - API connection unavailable</span>
           </div>
           <button
             onClick={handleRetry}
-            className="flex items-center gap-1 transition-colors hover:text-[var(--emerald)]"
+            className="flex items-center gap-1.5 px-3 py-1.5 min-h-[44px] rounded-lg transition-colors hover:text-[var(--emerald)] hover:bg-[var(--bg-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--emerald)]"
             style={{ color: CSS_COLORS.textMuted }}
+            aria-label="Retry connecting to AI service"
           >
-            <RefreshCw className="w-3 h-3" />
+            <RefreshCw className="w-4 h-4" />
             Retry
           </button>
         </div>
@@ -944,12 +947,13 @@ const AIDiscovery = memo(function AIDiscovery({ onUpdateProfile, formData }) {
 
       {/* Messages Area */}
       <div
-        className="p-6 space-y-4 overflow-y-auto"
+        className="p-4 sm:p-6 space-y-4 overflow-y-auto"
         style={{
           maxHeight: '400px',
           minHeight: '300px'
         }}
-        role="list"
+        role="log"
+        aria-live="polite"
         aria-label="Conversation messages"
       >
         {messages.map((message) => (
@@ -973,7 +977,7 @@ const AIDiscovery = memo(function AIDiscovery({ onUpdateProfile, formData }) {
       {/* Input Area */}
       <form
         onSubmit={handleSubmit}
-        className="px-6 py-4 border-t"
+        className="px-4 sm:px-6 py-4 border-t"
         style={{ borderColor: CSS_COLORS.border }}
       >
         <div className="flex gap-3">
@@ -983,22 +987,22 @@ const AIDiscovery = memo(function AIDiscovery({ onUpdateProfile, formData }) {
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             placeholder="Type your response..."
-            className="flex-1 px-4 py-3 rounded-xl text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--emerald)]"
+            className="flex-1 px-4 py-3 min-h-[44px] rounded-xl text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--emerald)]"
             style={{
               background: CSS_COLORS.bgSecondary,
               border: `1px solid ${CSS_COLORS.border}`,
               color: CSS_COLORS.textPrimary
             }}
-            aria-label="Your message"
+            aria-label="Type your response to the AI assistant"
           />
           <button
             type="submit"
             disabled={!inputValue.trim() || isTyping || isLoading}
-            className="px-4 py-3 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--emerald)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-elevated)]"
+            className="px-4 py-3 min-w-[44px] min-h-[44px] rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--emerald)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-elevated)]"
             style={{ background: 'var(--gradient-emerald)' }}
             aria-label="Send message"
           >
-            <Send className="w-5 h-5" style={{ color: CSS_COLORS.bgPrimary }} />
+            <Send className="w-5 h-5" style={{ color: CSS_COLORS.bgPrimary }} aria-hidden="true" />
           </button>
         </div>
       </form>

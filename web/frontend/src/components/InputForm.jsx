@@ -788,6 +788,7 @@ export default function InputForm({ onSubmit, isLoading }) {
               checked={formData.pension_has_cola}
               onChange={(e) => setFormData(prev => ({ ...prev, pension_has_cola: e.target.checked }))}
               className="w-4 h-4 rounded border-[var(--border)] bg-[var(--bg-secondary)] text-[var(--emerald)] focus:ring-[var(--emerald)]"
+              aria-label="Include cost-of-living adjustment for pension"
             />
             <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>
               Includes cost-of-living adjustment (COLA)
@@ -821,20 +822,23 @@ export default function InputForm({ onSubmit, isLoading }) {
                 <Trash2 className="w-4 h-4" />
               </button>
             </div>
-            <div className="grid grid-cols-2 gap-3 mb-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
               <div>
-                <label className="input-label">Name</label>
+                <label htmlFor={`investment-name-${investment.id}`} className="input-label">Name</label>
                 <input
+                  id={`investment-name-${investment.id}`}
                   type="text"
                   value={investment.name}
                   onChange={(e) => updateAlternativeInvestment(investment.id, 'name', e.target.value)}
                   placeholder="e.g., Rental Property"
                   className="input-field"
+                  aria-required="true"
                 />
               </div>
               <div>
-                <label className="input-label">Type</label>
+                <label htmlFor={`investment-type-${investment.id}`} className="input-label">Type</label>
                 <select
+                  id={`investment-type-${investment.id}`}
                   value={investment.investment_type}
                   onChange={(e) => updateAlternativeInvestment(investment.id, 'investment_type', e.target.value)}
                   className="input-field cursor-pointer"
@@ -845,12 +849,13 @@ export default function InputForm({ onSubmit, isLoading }) {
                 </select>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="input-label">Current Value</label>
+                <label htmlFor={`investment-value-${investment.id}`} className="input-label">Current Value</label>
                 <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)] font-mono text-sm">$</span>
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)] font-mono text-sm" aria-hidden="true">$</span>
                   <input
+                    id={`investment-value-${investment.id}`}
                     type="text"
                     inputMode="decimal"
                     value={investment.current_value ? investment.current_value.toLocaleString('en-US') : ''}
@@ -860,13 +865,16 @@ export default function InputForm({ onSubmit, isLoading }) {
                       updateAlternativeInvestment(investment.id, 'current_value', numValue);
                     }}
                     className="input-field pl-8"
+                    aria-describedby={`investment-value-hint-${investment.id}`}
                   />
+                  <span id={`investment-value-hint-${investment.id}`} className="sr-only">Value in dollars</span>
                 </div>
               </div>
               <div>
-                <label className="input-label">Expected Return</label>
+                <label htmlFor={`investment-return-${investment.id}`} className="input-label">Expected Return</label>
                 <div className="relative">
                   <input
+                    id={`investment-return-${investment.id}`}
                     type="text"
                     inputMode="decimal"
                     value={investment.expected_return}
@@ -875,8 +883,10 @@ export default function InputForm({ onSubmit, isLoading }) {
                       updateAlternativeInvestment(investment.id, 'expected_return', numValue);
                     }}
                     className="input-field pr-10"
+                    aria-describedby={`investment-return-hint-${investment.id}`}
                   />
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)] font-mono text-sm">%</span>
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)] font-mono text-sm" aria-hidden="true">%</span>
+                  <span id={`investment-return-hint-${investment.id}`} className="sr-only">Value in percent</span>
                 </div>
               </div>
             </div>

@@ -1,6 +1,6 @@
 import React, { memo, useMemo } from 'react';
 import { Sparkles, TrendingUp, Shield, Wallet, AlertTriangle } from 'lucide-react';
-import { CSS_COLORS, IMPACT_STYLES } from '../utils/colors';
+import { CSS_COLORS, IMPACT_STYLES, PURPLE_SUMMARY_STYLES } from '../utils/colors';
 
 const categoryIcons = {
   savings: Wallet,
@@ -112,14 +112,14 @@ const AIInsights = memo(function AIInsights({ analysis, isLoading }) {
       <div
         className="relative p-5 rounded-xl mb-6 overflow-hidden"
         style={{
-          background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(99, 102, 241, 0.05) 100%)',
-          border: '1px solid rgba(139, 92, 246, 0.2)'
+          background: PURPLE_SUMMARY_STYLES.background,
+          border: `1px solid ${PURPLE_SUMMARY_STYLES.border}`
         }}
       >
         {/* Decorative element */}
         <div
           className="absolute -top-20 -right-20 w-40 h-40 rounded-full opacity-20"
-          style={{ background: `radial-gradient(circle, ${CSS_COLORS.purple} 0%, transparent 70%)` }}
+          style={{ background: PURPLE_SUMMARY_STYLES.glow }}
           aria-hidden="true"
         />
 

@@ -1,7 +1,7 @@
 import React, { memo, useMemo } from 'react';
 import { CSS_COLORS, HEX_COLORS } from '../utils/colors';
 
-// Asset class display names and colors
+// Asset class display names and colors - all using design system tokens
 const ASSET_INFO = {
   us_large_cap: { name: 'US Large Cap', color: HEX_COLORS.emerald, category: 'equity' },
   us_small_cap: { name: 'US Small Cap', color: HEX_COLORS.emeraldLight, category: 'equity' },
@@ -9,10 +9,10 @@ const ASSET_INFO = {
   emerging_markets: { name: 'Emerging Markets', color: HEX_COLORS.purple, category: 'equity' },
   reits: { name: 'REITs', color: HEX_COLORS.purpleLight, category: 'equity' },
   us_bonds: { name: 'US Bonds', color: HEX_COLORS.gold, category: 'fixed' },
-  tips: { name: 'TIPS', color: '#fbbf24', category: 'fixed' },
-  high_yield: { name: 'High Yield', color: '#f59e0b', category: 'fixed' },
-  intl_bonds: { name: 'Intl Bonds', color: '#d97706', category: 'fixed' },
-  cash: { name: 'Cash', color: '#78716c', category: 'fixed' },
+  tips: { name: 'TIPS', color: HEX_COLORS.goldLight, category: 'fixed' },
+  high_yield: { name: 'High Yield', color: HEX_COLORS.amber, category: 'fixed' },
+  intl_bonds: { name: 'Intl Bonds', color: HEX_COLORS.amberDark, category: 'fixed' },
+  cash: { name: 'Cash', color: HEX_COLORS.slate, category: 'fixed' },
 };
 
 const AssetAllocation = memo(function AssetAllocation({ allocation, statistics }) {

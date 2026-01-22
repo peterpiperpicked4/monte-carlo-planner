@@ -36,12 +36,16 @@ export const HEX_COLORS = {
   emeraldGlow: '#34d399',
   emeraldMuted: '#065f46',
   gold: '#d4a44a',
+  goldLight: '#fbbf24',    // Lighter gold for TIPS
   goldMuted: '#92702f',
+  amber: '#f59e0b',        // Amber for High Yield
+  amberDark: '#d97706',    // Darker amber for Intl Bonds
   coral: '#f87171',
   coralMuted: '#991b1b',
   purple: '#8b5cf6',
   purpleLight: '#a78bfa',
   indigo: '#6366f1',
+  slate: '#64748b',        // Tinted gray (blue-tinted) for Cash - not pure gray
   textPrimary: '#f4f4f5',
   textSecondary: '#a1a1aa',
   textMuted: '#8b8b94',
@@ -97,6 +101,13 @@ export const PERCENTILE_STYLES = {
     cssText: CSS_COLORS.coral,
     border: 'rgba(248, 113, 113, 0.2)'
   }
+};
+
+// Purple-themed summary box styles
+export const PURPLE_SUMMARY_STYLES = {
+  background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(99, 102, 241, 0.05) 100%)',
+  border: 'rgba(139, 92, 246, 0.2)',
+  glow: 'radial-gradient(circle, rgba(139, 92, 246, 0.3) 0%, transparent 70%)'
 };
 
 // Impact styles for AI recommendations

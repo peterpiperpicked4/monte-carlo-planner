@@ -68,10 +68,12 @@ const SuccessGauge = memo(function SuccessGauge({ probability, confidenceZone })
       // Start at 135deg (bottom-left in normal coords) and span 270deg clockwise
       const angle = 135 + (tick / 100) * 270;
       const angleRad = (angle * Math.PI) / 180;
-      const x1 = 130 + 100 * Math.cos(angleRad);
-      const y1 = 130 + 100 * Math.sin(angleRad);
-      const x2 = 130 + 110 * Math.cos(angleRad);
-      const y2 = 130 + 110 * Math.sin(angleRad);
+      const cosAngle = Math.cos(angleRad);
+      const sinAngle = Math.sin(angleRad);
+      const x1 = Math.round((130 + 100 * cosAngle) * 100) / 100;
+      const y1 = Math.round((130 + 100 * sinAngle) * 100) / 100;
+      const x2 = Math.round((130 + 110 * cosAngle) * 100) / 100;
+      const y2 = Math.round((130 + 110 * sinAngle) * 100) / 100;
       return { tick, x1, y1, x2, y2 };
     });
   }, []);
@@ -85,14 +87,14 @@ const SuccessGauge = memo(function SuccessGauge({ probability, confidenceZone })
       {/* Pulsing background rings */}
       <div className="absolute inset-0 flex items-center justify-center" aria-hidden="true">
         <div
-          className="absolute w-72 h-72 rounded-full animate-pulse-ring"
+          className="absolute w-56 sm:w-64 md:w-72 aspect-square rounded-full animate-pulse-ring"
           style={{
             border: `1px solid ${status.color}`,
             opacity: 0.1
           }}
         />
         <div
-          className="absolute w-80 h-80 rounded-full animate-pulse-ring"
+          className="absolute w-64 sm:w-72 md:w-80 aspect-square rounded-full animate-pulse-ring"
           style={{
             border: `1px solid ${status.color}`,
             opacity: 0.05,
@@ -100,19 +102,17 @@ const SuccessGauge = memo(function SuccessGauge({ probability, confidenceZone })
           }}
         />
         <div
-          className="absolute rounded-full animate-pulse-ring"
+          className="absolute w-72 sm:w-80 md:w-[22rem] aspect-square rounded-full animate-pulse-ring"
           style={{
             border: `1px solid ${status.color}`,
             opacity: 0.025,
-            animationDelay: '1s',
-            width: '22rem',
-            height: '22rem'
+            animationDelay: '1s'
           }}
         />
       </div>
 
       {/* SVG Gauge */}
-      <div className="relative w-64 h-64 flex items-center justify-center" aria-hidden="true">
+      <div className="relative w-48 sm:w-56 md:w-64 aspect-square flex items-center justify-center" aria-hidden="true">
         <svg viewBox="0 0 260 260" className="w-full h-full">
           {/* Background track */}
           <circle

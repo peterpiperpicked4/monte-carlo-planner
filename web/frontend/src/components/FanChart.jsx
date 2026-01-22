@@ -25,6 +25,7 @@ const CustomTooltip = memo(function CustomTooltip({ active, payload, label }) {
           borderColor: CSS_COLORS.border
         }}
         role="tooltip"
+        aria-live="polite"
       >
         <p className="font-display text-lg mb-3" style={{ color: CSS_COLORS.textPrimary }}>{label}</p>
         <div className="space-y-2 text-sm">
@@ -277,9 +278,14 @@ const FanChart = memo(function FanChart({ paths, years, milestones = [] }) {
         </ResponsiveContainer>
       </div>
 
+      {/* Caption */}
+      <p className="text-xs text-center mt-4" style={{ color: CSS_COLORS.textMuted }}>
+        Hover over the chart to see detailed values at each year. Toggle "Show Data" for a tabular view.
+      </p>
+
       {/* Legend - 44px minimum touch targets with visual dash patterns matching chart */}
       <div
-        className="flex flex-wrap justify-center gap-4 mt-6 pt-4 border-t"
+        className="flex flex-wrap justify-center gap-4 mt-4 pt-4 border-t"
         style={{ borderColor: CSS_COLORS.border }}
         role="list"
         aria-label="Chart legend"
